@@ -1,5 +1,5 @@
 [package]
-name = "rpki_validator"
+name = "rpki-validator"
 version = "0.1.0"
 authors = ["Matias Fontanini <matias.fontanini@gmail.com>"]
 
