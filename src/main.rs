@@ -9,6 +9,7 @@ extern crate rpki_validator;
 #[macro_use] extern crate serde_json;
 extern crate simple_logger;
 extern crate toml;
+extern crate clap;
 
 use std::collections::HashMap;
 use std::fs;
@@ -435,13 +436,24 @@ fn bootstrap(storage: &Arc<Mutex<RecordStorage>>,
 }
 
 fn main() {
+    let matches = clap::App::new("RPKI validator")
+                      .version("0.1.0")
+                      .author("Matias Fontanini")
+                      .about("Syncs and validates RPKI records")
+                      .arg(clap::Arg::with_name("config")
+                           .short("c")
+                           .long("config")
+                           .value_name("FILE")
+                           .help("The config file to use")
+                           .takes_value(true)
+                           .required(true))
+                       .get_matches();
+
     simple_logger::init_with_level(log::Level::Info).unwrap();
 
-    let config = match parse_config("local/Config.toml") {
+    let config = match parse_config(matches.value_of("config").unwrap()) {
         Some(c) => c,
-        None => {
-            return;
-        }
+        None => return,
     };
 
     // Setup prometheus metrics

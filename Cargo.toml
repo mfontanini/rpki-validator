@@ -19,6 +19,7 @@ serde_json = "1.0.32"
 serde = "1.0.79"
 simple_logger = "0.5.0"
 toml = "0.4.8"
+clap = "2.32.0"
 
 [[bench]]
 name = "storage"
