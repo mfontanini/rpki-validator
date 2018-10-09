@@ -12,6 +12,7 @@ extern crate toml;
 extern crate clap;
 
 use std::collections::HashMap;
+use std::env;
 use std::fs;
 use std::io::Read;
 use std::sync::{Arc, Mutex};
@@ -356,11 +357,13 @@ struct RsyncConfig {
     #[serde(default = "default_rsync")]
     binary: String,
     interval: u32,
-    output: String,
+    #[serde(default = "default_cache_path")]
+    cache_path: String,
 }
 
 #[derive(Deserialize)]
 struct TalConfig {
+    #[serde(default = "default_tal_path")]
     directory: String,
 }
 
@@ -373,6 +376,14 @@ struct ValidationConfig {
 
 fn default_rsync() -> String {
     "rsync".to_string()
+}
+
+fn default_tal_path() -> String {
+    env::var("TAL_PATH").unwrap_or("tal".to_string())
+}
+
+fn default_cache_path() -> String {
+    env::var("CACHE_PATH").unwrap_or("/tmp/cache".to_string())
 }
 
 fn parse_config(path: &str) -> Option<Config> {
@@ -406,14 +417,23 @@ fn bootstrap(storage: &Arc<Mutex<RecordStorage>>,
              executor: &mut Executor,
              status: &Arc<Mutex<ProcessingStatus>>,
              metrics: &Metrics,
-             config: &Config) {
-    for entry in fs::read_dir(&config.tal.directory).unwrap() {
+             config: &Config) 
+    -> bool
+{
+    let entries = match fs::read_dir(&config.tal.directory) {
+        Ok(e) => e,
+        Err(e) => {
+            error!("Error processing TAL directory \"{}\": {}", config.tal.directory, e);
+            return false;
+        }
+    };
+    for entry in entries {
         let entry = entry.unwrap().path();
         info!("Creating processor for file {:?}", entry);
         let fetcher = RsyncFetcher::new(&config.rsync.binary);
         let processor = Processor::new(
             entry,
-            &config.rsync.output,
+            &config.rsync.cache_path,
             config.validation.strict,
             fetcher,
             storage.clone(),
@@ -433,6 +453,7 @@ fn bootstrap(storage: &Arc<Mutex<RecordStorage>>,
             Instant::now()
         );
     }
+    return true;
 }
 
 fn main() {
@@ -467,7 +488,9 @@ fn main() {
     let status = Arc::new(Mutex::new(ProcessingStatus::new()));
 
     // Bootstrap our processing
-    bootstrap(&storage, &mut executor, &status, &metrics, &config);
+    if !bootstrap(&storage, &mut executor, &status, &metrics, &config) {
+        return;
+    }
 
     // Start the API
     server::new(
