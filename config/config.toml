@@ -1,0 +1,25 @@
+[rsync]
+# Interval in minutes when rsync will be executed
+interval = 10
+
+# Path to the rsync binary
+# binary = "rsync"
+
+# Output directory
+# cache_path = "cache"
+
+[tal]
+# The path to the directory where all tal files are stored
+# directory = "tal"
+
+[validation]
+# Use strict mode during validation?
+strict = false
+
+# Number of threads to use during validation
+# threads = 3
+
+[api_server]
+
+# The endpoint in which to expose the API
+# endpoint = "127.0.0.1:8080"
