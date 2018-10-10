@@ -11,8 +11,10 @@ RUN sudo mkdir -p ${APP_DIRECTORY}/cache
 # Copy the tal files
 COPY tal ${APP_DIRECTORY}/tal
 
-# Copy the sourcecode
-ADD . ./build/
+# Copy the source code
+ADD src ./build/src
+ADD benches ./build/benches
+ADD Cargo.lock Cargo.toml ./build/
 
 # Fix permissions
 RUN sudo chown -R rust:rust .
