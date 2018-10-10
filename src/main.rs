@@ -350,6 +350,7 @@ struct Config {
     rsync: RsyncConfig,
     tal: TalConfig,
     validation: ValidationConfig,
+    api_server: ApiServerConfig
 }
 
 #[derive(Deserialize)]
@@ -374,6 +375,12 @@ struct ValidationConfig {
     threads: usize,
 }
 
+#[derive(Deserialize)]
+struct ApiServerConfig {
+    #[serde(default = "default_api_endpoint")]
+    endpoint: String
+}
+
 fn default_rsync() -> String {
     "rsync".to_string()
 }
@@ -384,6 +391,10 @@ fn default_tal_path() -> String {
 
 fn default_cache_path() -> String {
     env::var("CACHE_PATH").unwrap_or("/tmp/cache".to_string())
+}
+
+fn default_api_endpoint() -> String {
+    env::var("API_ENDPOINT").unwrap_or("127.0.0.1:8080".to_string())
 }
 
 fn parse_config(path: &str) -> Option<Config> {
@@ -521,7 +532,7 @@ fn main() {
                         r.method(http::Method::GET).h(MetricsHandler::new(registry.clone()))
                     }).boxed(),
             ]
-        }).bind("127.0.0.1:8080").unwrap()
+        }).bind(config.api_server.endpoint).unwrap()
           .workers(4)
           .run();
 }
