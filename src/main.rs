@@ -370,6 +370,7 @@ struct TalConfig {
 
 #[derive(Deserialize)]
 struct ValidationConfig {
+    #[serde(default)]
     strict: bool,
     #[serde(default = "num_cpus::get")]
     threads: usize,
