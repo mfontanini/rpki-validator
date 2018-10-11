@@ -66,6 +66,12 @@ impl RsyncFetcher {
         Ok(RsyncOutput::new(actions))
     }
 
+    pub fn check_rsync_binary(&self) -> io::Result<()> {
+        let mut cmd = Command::new(&self.rsync_path);
+        cmd.args(&["-h"]);
+        cmd.output().map(|_| ())
+    }
+
     fn parse_action(&self, action: &str, base_output: &PathBuf) -> Option<RsyncAction> {
         let mut tokens = action.split(' ');
         let changes = tokens.next().unwrap();

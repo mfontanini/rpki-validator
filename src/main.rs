@@ -488,6 +488,11 @@ fn main() {
         None => return,
     };
 
+    if let Err(e) = RsyncFetcher::new(&config.rsync.binary).check_rsync_binary() {
+        error!("Failed to execute rsync binary: {}", e);
+        return;
+    }
+
     // Setup prometheus metrics
     let metrics = Metrics::new();
     let mut registry = Registry::new();
