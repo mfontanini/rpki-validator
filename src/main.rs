@@ -333,7 +333,7 @@ impl Work for ProcessorWork {
                 },
                 Err(e) => {
                     status.mark_error_run(name, Local::now(), elapsed);
-                    error!("Failed to update {} trust anchor: {:?}", name, e);
+                    error!("Failed to update {} trust anchor: {}", name, e);
                 }
             }
         }

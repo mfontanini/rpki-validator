@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::io;
 use std::io::Read;
 use std::ffi::OsStr;
+use std::fmt;
 use std::fs::{File, create_dir_all};
 use std::path::{PathBuf, Path};
 use std::sync::{Arc, Mutex};
@@ -26,7 +27,7 @@ use storage::{Record, RecordStorage, TrustAnchor};
 pub enum Error {
     Io(io::Error),
     Tal(ReadError),
-    Generic(String),
+    Generic(&'static str),
     Validation,
     Other,
 }
@@ -34,6 +35,18 @@ pub enum Error {
 impl From<io::Error> for Error {
     fn from(e: io::Error) -> Error {
         Error::Io(e)
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::Io(e) => e.fmt(f),
+            Error::Tal(e) => e.fmt(f),
+            Error::Generic(e) => write!(f, "{}", e),
+            Error::Validation => write!(f, "Failed to validate record"),
+            Error::Other => write!(f, "Unknown error"),
+        }
     }
 }
 
@@ -373,7 +386,7 @@ impl Processor {
 
     fn extract_certificate(&self, data: Bytes, tal: &Tal) -> Result<ResourceCert, Error> {
         let cert = Cert::decode(data)
-            .map_err(|_| Error::Generic("Failed to decode certificate".to_string()))?;
+            .map_err(|_| Error::Generic("Failed to decode certificate"))?;
         if cert.subject_public_key_info() != tal.key_info() {
             warn!("Found cert signed by different key that source TAL file");
             return Err(Error::Other);
