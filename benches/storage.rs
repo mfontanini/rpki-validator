@@ -5,6 +5,7 @@ extern crate rpki;
 
 use std::net::IpAddr;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use bencher::Bencher;
 
@@ -12,7 +13,7 @@ use ipnetwork::IpNetwork;
 
 use rpki::asres::AsId;
 
-use rpki_validator::storage::{RecordStorage, Record};
+use rpki_validator::storage::{RecordStorage, Record, TrustAnchor};
 
 fn bench_lookup_ipv4(b: &mut Bencher) {
     let mut storage = RecordStorage::new();
@@ -23,6 +24,7 @@ fn bench_lookup_ipv4(b: &mut Bencher) {
         AsId::from(3),
     ];
     let total_prefixes = 10000;
+    let anchor = Arc::new(TrustAnchor::new("bar".to_string()));
     for _ in 0..total_prefixes {
         let addr = IpAddr::from(current_buffer);
         let mut records = Vec::new();
@@ -32,7 +34,7 @@ fn bench_lookup_ipv4(b: &mut Bencher) {
         }
         // We need unique paths, otherwise we'll keep erasing the previous records
         // thinking the source file was modified
-        storage.add_records(records, PathBuf::from(format!("{:?}", prefix)));
+        storage.add_records(records, PathBuf::from(format!("{:?}", prefix)), &anchor);
         if current_buffer[2] == 255 {
             current_buffer[2] = 0;
             current_buffer[1] += 1;
