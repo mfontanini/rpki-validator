@@ -24,7 +24,8 @@ impl Worker {
                 let work = work_receiver.lock().unwrap().recv();
                 let result = work.ok().map(|mut work| {
                     if let Some(execution_time) = work.execute() {
-                        info!("Re-scheduling work for {:?}", execution_time);
+                        let time_from_now = execution_time - Instant::now();
+                        info!("Re-scheduling work for {}s from now", time_from_now.as_secs());
                         new_work_sender.send(ScheduledWork::new(work, execution_time)).ok()
                     }
                     else {
