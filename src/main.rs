@@ -5,16 +5,12 @@ extern crate ipnetwork;
 extern crate num_cpus;
 extern crate prometheus;
 extern crate rpki_validator;
-#[macro_use] extern crate serde_derive;
 #[macro_use] extern crate serde_json;
 extern crate simple_logger;
-extern crate toml;
 extern crate clap;
 
 use std::collections::HashMap;
-use std::env;
 use std::fs;
-use std::io::Read;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -30,6 +26,7 @@ use prometheus::{Encoder, Registry, TextEncoder};
 
 use rpki_validator::executor::{Executor, Work};
 use rpki_validator::metrics::Metrics;
+use rpki_validator::config::Config;
 use rpki_validator::processor::Processor;
 use rpki_validator::rsync::RsyncFetcher;
 use rpki_validator::storage::{RecordStorage, Record};
@@ -345,86 +342,6 @@ impl Work for ProcessorWork {
     }
 }
 
-#[derive(Deserialize)]
-struct Config {
-    rsync: RsyncConfig,
-    tal: TalConfig,
-    validation: ValidationConfig,
-    api_server: ApiServerConfig
-}
-
-#[derive(Deserialize)]
-struct RsyncConfig {
-    #[serde(default = "default_rsync")]
-    binary: String,
-    interval: u32,
-    #[serde(default = "default_cache_path")]
-    cache_path: String,
-}
-
-#[derive(Deserialize)]
-struct TalConfig {
-    #[serde(default = "default_tal_path")]
-    directory: String,
-}
-
-#[derive(Deserialize)]
-struct ValidationConfig {
-    #[serde(default)]
-    strict: bool,
-    #[serde(default = "num_cpus::get")]
-    threads: usize,
-}
-
-#[derive(Deserialize)]
-struct ApiServerConfig {
-    #[serde(default = "default_api_endpoint")]
-    endpoint: String
-}
-
-fn default_rsync() -> String {
-    "rsync".to_string()
-}
-
-fn default_tal_path() -> String {
-    env::var("TAL_PATH").unwrap_or("tal".to_string())
-}
-
-fn default_cache_path() -> String {
-    env::var("CACHE_PATH").unwrap_or("/tmp/cache".to_string())
-}
-
-fn default_api_endpoint() -> String {
-    env::var("API_ENDPOINT").unwrap_or("127.0.0.1:8080".to_string())
-}
-
-fn parse_config(path: &str) -> Option<Config> {
-    info!("Using config file {}", path);
-    let mut file = match fs::File::open(path) {
-        Ok(f) => f,
-        Err(e) => {
-            error!("Failed to open config file: {:}", e);
-            return None;
-        }
-    };
-    let mut contents = String::new();
-    match file.read_to_string(&mut contents) {
-        Ok(_) => (),
-        Err(e) => {
-            error!("Failed to read config file: {:}", e);
-            return None;
-        }
-    };
-    //let config : Config = toml::from_str(&contents);
-    match toml::from_str(&contents) {
-        Ok(c) => Some(c),
-        Err(e) => {
-            error!("Failed to parse config file: {:}", e);
-            None
-        }
-    }
-}
-
 fn bootstrap(storage: &Arc<Mutex<RecordStorage>>,
              executor: &mut Executor,
              status: &Arc<Mutex<ProcessingStatus>>,
@@ -484,7 +401,7 @@ fn main() {
 
     simple_logger::init_with_level(log::Level::Info).unwrap();
 
-    let config = match parse_config(matches.value_of("config").unwrap()) {
+    let config = match Config::from_path(matches.value_of("config").unwrap()) {
         Some(c) => c,
         None => return,
     };
