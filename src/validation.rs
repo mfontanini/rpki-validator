@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use std::sync::Mutex;
+use std::sync::RwLock;
 
 use ipnetwork::IpNetwork;
 
@@ -8,11 +8,11 @@ use rpki::asres::AsId;
 use storage::{RecordStorage, Record};
 
 pub struct RecordValidator {
-    storage: Arc<Mutex<RecordStorage>>,
+    storage: Arc<RwLock<RecordStorage>>,
 }
 
 impl RecordValidator {
-    pub fn new(storage: Arc<Mutex<RecordStorage>>) -> Self {
+    pub fn new(storage: Arc<RwLock<RecordStorage>>) -> Self {
         RecordValidator {
             storage
         }
@@ -20,7 +20,7 @@ impl RecordValidator {
 
     pub fn validate(&self, prefix: &IpNetwork, origin: u32) -> ValidationResult {
         let origin = AsId::from(origin);
-        let records = self.storage.lock().unwrap().find_records(prefix);
+        let records = self.storage.read().unwrap().find_records(prefix);
         let mut valid_records = Vec::new();
         let mut invalid_length = Vec::new();
         let mut invalid_origin = Vec::new();
@@ -137,7 +137,7 @@ mod tests {
         let mut storage = RecordStorage::new();
         let trust_anchor = Arc::new(TrustAnchor::new("foo".to_string()));
         storage.add_records(records, PathBuf::new(), &trust_anchor);
-        RecordValidator::new(Arc::new(Mutex::new(storage)))
+        RecordValidator::new(Arc::new(RwLock::new(storage)))
     }
 
     #[test]

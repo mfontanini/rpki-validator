@@ -11,7 +11,7 @@ extern crate clap;
 
 use std::collections::HashMap;
 use std::fs;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};
 
 use actix_web::{http, server, App, HttpRequest, HttpResponse};
@@ -34,13 +34,13 @@ use rpki_validator::validation::{RecordValidator, ValidationRecords, ValidationR
 
 struct AppState {
     validator: RecordValidator,
-    storage: Arc<Mutex<RecordStorage>>,
+    storage: Arc<RwLock<RecordStorage>>,
     status: Arc<Mutex<ProcessingStatus>>,
 }
 
 impl AppState {
     fn new(validator: RecordValidator,
-           storage: Arc<Mutex<RecordStorage>>,
+           storage: Arc<RwLock<RecordStorage>>,
            status: Arc<Mutex<ProcessingStatus>>)
         -> Self
     {
@@ -198,7 +198,7 @@ impl Api {
     }
 
     fn export(req: &HttpRequest<AppState>) -> HttpResponse {
-        let records = req.state().storage.lock().unwrap().records();
+        let records = req.state().storage.read().unwrap().records();
         ApiResponse::ExportResponse(records).build()
     }
 
@@ -295,14 +295,14 @@ struct TrustAnchorStatus {
 struct ProcessorWork {
     processor: Processor,
     status: Arc<Mutex<ProcessingStatus>>,
-    storage: Arc<Mutex<RecordStorage>>,
+    storage: Arc<RwLock<RecordStorage>>,
     metrics: Metrics,
 }
 
 impl ProcessorWork {
     fn new(processor: Processor,
            status: Arc<Mutex<ProcessingStatus>>,
-           storage: Arc<Mutex<RecordStorage>>,
+           storage: Arc<RwLock<RecordStorage>>,
            metrics: Metrics)
         -> Self
     {
@@ -335,14 +335,14 @@ impl Work for ProcessorWork {
             }
         }
 
-        let total_records = self.storage.lock().unwrap().total_records(name);
+        let total_records = self.storage.read().unwrap().total_records(name);
         self.metrics.set_total_records(name, total_records as i64);
         self.metrics.observe_update_time(name, elapsed);
         Some(self.processor.next_update_time())
     }
 }
 
-fn bootstrap(storage: &Arc<Mutex<RecordStorage>>,
+fn bootstrap(storage: &Arc<RwLock<RecordStorage>>,
              executor: &mut Executor,
              status: &Arc<Mutex<ProcessingStatus>>,
              metrics: &Metrics,
@@ -417,7 +417,7 @@ fn main() {
     metrics.register(&mut registry);
 
     // Setup our processing blocks
-    let storage = Arc::new(Mutex::new(RecordStorage::new()));
+    let storage = Arc::new(RwLock::new(RecordStorage::new()));
     let mut executor = Executor::new(config.validation.threads);
     let status = Arc::new(Mutex::new(ProcessingStatus::new()));
 
@@ -433,7 +433,8 @@ fn main() {
             vec![
                 // API handler
                 App::with_state(AppState::new(RecordValidator::new(storage.clone()),
-                                              storage.clone(), status.clone()))
+                                              storage.clone(),
+                                              status.clone()))
                     .prefix("/api/v1")
                     .resource(
                         "/validity/AS{asn}/{prefix}/{length}",

@@ -5,7 +5,7 @@ use std::ffi::OsStr;
 use std::fmt;
 use std::fs::{File, create_dir_all};
 use std::path::{PathBuf, Path};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
 use bytes::Bytes;
@@ -256,7 +256,7 @@ pub struct Processor {
     output_path: String,
     strict_mode: bool,
     rsync_fetcher: RsyncFetcher,
-    storage: Arc<Mutex<RecordStorage>>,
+    storage: Arc<RwLock<RecordStorage>>,
     processing_interval : Duration,
     policy: ProcessingPolicy,
 }
@@ -266,7 +266,7 @@ impl Processor {
                output_path: &str,
                strict_mode: bool,
                rsync_fetcher: RsyncFetcher,
-               storage: Arc<Mutex<RecordStorage>>,
+               storage: Arc<RwLock<RecordStorage>>,
                processing_interval: Duration)
         -> Self
     {
@@ -316,7 +316,7 @@ impl Processor {
         // Process this TAL file
         let output = self.process_tal(tal);
         // Process any file deletions
-        self.policy.remove_deleted_files(&mut self.storage.lock().unwrap());
+        self.policy.remove_deleted_files(&mut self.storage.write().unwrap());
         // Now change our policy and then return
         self.policy = self.policy.next(self.processing_interval);
         output
@@ -471,7 +471,7 @@ impl Processor {
                         Err(_) => None
                     }
                 }).filter(Option::is_some).map(Option::unwrap).collect::<Vec<_>>();
-                self.storage.lock().unwrap().add_records(records, path, &self.trust_anchor);
+                self.storage.write().unwrap().add_records(records, path, &self.trust_anchor);
             }
         }
         Ok(())
