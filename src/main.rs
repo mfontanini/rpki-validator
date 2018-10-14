@@ -321,23 +321,25 @@ impl Work for ProcessorWork {
         let now = Instant::now();
         let update_result = self.processor.update();
         let elapsed = now.elapsed();
-        let name = self.processor.trust_anchor_name();
+        let trust_anchor = self.processor.trust_anchor_name();
         {
             let mut status = self.status.lock().unwrap();
             match update_result {
                 Ok(_) => {
-                    status.mark_successful_run(name, Local::now(), elapsed)
+                    self.metrics.increase_total_runs(trust_anchor, true);
+                    status.mark_successful_run(trust_anchor, Local::now(), elapsed);
                 },
                 Err(e) => {
-                    status.mark_error_run(name, Local::now(), elapsed);
-                    error!("Failed to update {} trust anchor: {}", name, e);
+                    self.metrics.increase_total_runs(trust_anchor, false);
+                    status.mark_error_run(trust_anchor, Local::now(), elapsed);
+                    error!("Failed to update {} trust anchor: {}", trust_anchor, e);
                 }
             }
         }
 
-        let total_records = self.storage.read().unwrap().total_records(name);
-        self.metrics.set_total_records(name, total_records as i64);
-        self.metrics.observe_update_time(name, elapsed);
+        let total_records = self.storage.read().unwrap().total_records(trust_anchor);
+        self.metrics.set_total_records(trust_anchor, total_records as i64);
+        self.metrics.observe_update_time(trust_anchor, elapsed);
         Some(self.processor.next_update_time())
     }
 }
