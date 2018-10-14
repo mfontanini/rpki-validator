@@ -157,10 +157,12 @@ impl<'a> ApiResponse<'a> {
         };
         json!({
             "anchors" : trust_anchors_statuses.iter().map(|(name, status)| {
-                let last_run = status.last_run.map(|d| format!("{}",
-                                                               d.format("%Y-%m-%d %H:%M:%S")));
-                let duration = status.last_duration.map(|d| format!("{}.{}s", d.as_secs(),
-                                                            d.subsec_millis()));
+                let last_run = status.last_run.map(|d|
+                    format!("{}", d.format("%Y-%m-%d %H:%M:%S"))
+                );
+                let duration = status.last_duration.map(|d|
+                    format!("{}.{}s", d.as_secs(), d.subsec_millis())
+                );
                 json!({
                     "name": name.as_str(),
                     "successful_runs": status.successful_runs,
