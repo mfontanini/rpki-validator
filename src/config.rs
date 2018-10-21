@@ -67,15 +67,20 @@ fn default_cache_path() -> String {
 
 #[derive(Deserialize)]
 pub struct TalConfig {
+    #[serde(default = "default_tal_directory")]
     pub directory: String,
 }
 
 impl Default for TalConfig {
     fn default() -> Self {
         TalConfig {
-            directory: env::var("TAL_PATH").unwrap_or("tal".to_string())
+            directory: default_tal_directory()
         }
     }
+}
+
+fn default_tal_directory() -> String {
+    env::var("TAL_PATH").unwrap_or("tal".to_string())
 }
 
 // ValidationConfig
