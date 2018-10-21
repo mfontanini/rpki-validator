@@ -1,4 +1,4 @@
-FROM ekidd/rust-musl-builder
+FROM ekidd/rust-musl-builder:1.29.2
 
 ENV APP_DIRECTORY /rpki-validator
 ENV TAL_PATH ${APP_DIRECTORY}/tal
