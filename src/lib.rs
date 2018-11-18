@@ -1,4 +1,4 @@
-extern crate ber;
+extern crate bcder;
 extern crate bytes;
 extern crate ipnetwork;
 #[macro_use] extern crate log;
