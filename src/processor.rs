@@ -132,7 +132,7 @@ pub enum ProcessingPolicyType {
 pub struct ProcessingPolicy {
     policy_type: ProcessingPolicyType,
     next_processing_offset: Duration,
-    cached_module_processors: HashMap<PathBuf, Arc<ModuleProcess + Sync + Send>>,
+    cached_module_processors: HashMap<PathBuf, Arc<dyn ModuleProcess + Sync + Send>>,
 }
 
 impl ProcessingPolicy {
@@ -171,7 +171,7 @@ impl ProcessingPolicy {
                       uri: &uri::Rsync,
                       output_path: &Path,
                       rsync_fetcher: &RsyncFetcher)
-        -> Result<Arc<ModuleProcess + Sync + Send>, Error>
+        -> Result<Arc<dyn ModuleProcess + Sync + Send>, Error>
     {
         // Don't fetch anything if we're only trying to process the existing ones
         match self.policy_type {
@@ -225,7 +225,7 @@ impl ProcessingPolicy {
                    uri: &uri::Rsync,
                    output_path: &Path,
                    rsync_fetcher: &RsyncFetcher)
-        -> Result<Arc<ModuleProcess>, Error>
+        -> Result<Arc<dyn ModuleProcess>, Error>
     {
         if let Some(cached_entry) = self.cached_module_processors.get(output_path) {
             return Ok(cached_entry.clone());
@@ -428,7 +428,7 @@ impl Processor {
                         issuer_cert: ResourceCert,
                         manifest: ManifestContent,
                         mut crl_store: CrlStore,
-                        module_processor: Arc<ModuleProcess>,
+                        module_processor: Arc<dyn ModuleProcess>,
                         repo_uri: uri::Rsync)
         -> Result<(), Error> {
         for item in manifest.iter_uris(repo_uri.clone()) {
