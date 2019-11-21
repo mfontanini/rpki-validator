@@ -6,7 +6,7 @@ authors = ["Matias Fontanini <matias.fontanini@gmail.com>"]
 [dependencies]
 actix-web = "0.7.7"
 bencher = "0.1.5"
-bcder = "^0.1.0"
+bcder = "^0.4.0"
 bytes = "^0.4"
 chrono = "0.4.6"
 ipnetwork = "0.13.1"
