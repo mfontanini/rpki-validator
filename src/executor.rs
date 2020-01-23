@@ -10,7 +10,7 @@ pub trait Work {
     fn execute(&mut self) -> Option<Instant>;
 }
 
-type WorkPtr = Box<Work + Send>;
+type WorkPtr = Box<dyn Work + Send>;
 
 struct Worker {
 
